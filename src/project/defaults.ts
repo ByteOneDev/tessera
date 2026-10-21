@@ -1,5 +1,20 @@
 import { nanoid } from 'nanoid'
-import type { Cube, Gui, GuiElement, GuiElementType, Model, Project } from './types'
+import { Bitmap } from '../lib/png'
+import type {
+  Content,
+  ContentKind,
+  Cube,
+  EntityContent,
+  Gui,
+  GuiElement,
+  GuiElementType,
+  ItemContent,
+  LogicEdge,
+  LogicNode,
+  ModMeta,
+  Model,
+  Project,
+} from './types'
 
 export const newId = () => nanoid(10)
 
@@ -72,33 +87,87 @@ export function newGui(name = 'nouvel_ecran', target: Gui['target'] = 'mod'): Gu
   }
 }
 
-export function newProject(): Project {
-  const joinId = newId()
-  const msgId = newId()
+const META: ModMeta = {
+  modId: 'monmod',
+  name: 'Mon Mod',
+  version: '1.0.0',
+  authors: '',
+  description: 'Un mod créé avec Tessera.',
+}
+
+export function newContent(kind: ContentKind, name: string, modelId = ''): Content {
+  switch (kind) {
+    case 'item':
+      return { id: newId(), kind, name, maxStack: 64 }
+    case 'block':
+      return { id: newId(), kind, name, hardness: 1.5 }
+    case 'entity':
+      return { id: newId(), kind, name, modelId, health: 10, speed: 0.25, eggPrimary: '#3b82c4', eggSecondary: '#e0b48a' }
+  }
+}
+
+/** Gemme 16×16 dessinée pixel par pixel (texture d'exemple). */
+function gemTexture(): string {
+  const bmp = new Bitmap(16, 16)
+  const rows = ['......XXXX......', '....XXLLLLXX....', '...XLLWWLLLLX...', '..XLLWWLLLLLLX..', '..XLLWLLLLLLMX..', '.XLLLLLLLLLLMMX.', '.XLLLLLLLLLMMMX.', '.XMLLLLLLLMMMMX.', '.XMMLLLLLMMMMMX.', '.XMMMMLLMMMMMDX.', '..XMMMMMMMMMDX..', '..XDMMMMMMMDDX..', '...XDDMMMMDDX...', '....XXDDDDXX....', '......XXXX......', '................']
+  const colors: Record<string, string> = { X: '#1f3b2c', L: '#5fe08a', W: '#e8fff0', M: '#34b866', D: '#22804a' }
+  rows.forEach((row, y) => [...row].forEach((ch, x) => colors[ch] && bmp.fillRect(x, y, 1, 1, colors[ch])))
+  return bmp.toDataUrl()
+}
+
+/** Projet vierge : aucun contenu. */
+export function emptyProject(): Project {
   return {
     format: 'tessera',
-    formatVersion: 1,
-    meta: {
-      modId: 'monmod',
-      name: 'Mon Mod',
-      version: '1.0.0',
-      authors: '',
-      description: 'Un mod créé avec Tessera.',
-    },
-    models: [newModel('personnage')],
-    guis: [newGui('menu_principal')],
-    logic: {
-      nodes: [
-        { id: joinId, type: 'event.player_join', position: { x: 40, y: 80 }, params: {} },
-        {
-          id: msgId,
-          type: 'action.message',
-          position: { x: 340, y: 80 },
-          params: { text: 'Bienvenue sur le serveur !' },
-        },
-      ],
-      edges: [{ id: newId(), source: joinId, sourceHandle: 'out', target: msgId, targetHandle: 'in' }],
-    },
+    formatVersion: 2,
+    meta: { ...META },
+    models: [],
+    guis: [],
+    content: [],
+    logic: { nodes: [], edges: [] },
     customCode: '',
   }
 }
+
+/** Modèle « Mod de bienvenue » : un exemple complet et simple qui utilise les quatre panneaux. */
+export function newProject(): Project {
+  const model = newModel('compagnon')
+  const gem = { ...(newContent('item', 'Pierre de bienvenue') as ItemContent), texture: gemTexture() }
+  const companion = newContent('entity', 'Compagnon', model.id) as EntityContent
+  const gui = newGui('menu_principal')
+  const n = (type: string, x: number, y: number, params: Record<string, string> = {}): LogicNode => ({
+    id: newId(),
+    type,
+    position: { x, y },
+    params,
+  })
+  const join = n('event.player_join', 40, 80)
+  const msg = n('action.message', 340, 80, { text: 'Bienvenue sur le serveur !' })
+  const give = n('action.give_item', 640, 80, { item: `content:${gem.id}`, count: '1' })
+  const click = n('event.right_click_item', 40, 300, { item: `content:${gem.id}` })
+  const spawn = n('action.spawn_entity', 340, 300, { entity: `content:${companion.id}` })
+  const sound = n('action.sound', 640, 300, { sound: 'minecraft:entity.experience_orb.pickup' })
+  const key = n('event.key_press', 40, 500, { key: 'G', name: 'Ouvrir le menu' })
+  const open = n('action.open_gui', 340, 500, { gui: gui.id })
+  const link = (a: LogicNode, b: LogicNode): LogicEdge => ({ id: newId(), source: a.id, sourceHandle: 'out', target: b.id, targetHandle: 'in' })
+  return {
+    ...emptyProject(),
+    models: [model],
+    guis: [gui],
+    content: [gem, companion],
+    logic: {
+      nodes: [join, msg, give, click, spawn, sound, key, open],
+      edges: [link(join, msg), link(msg, give), link(click, spawn), link(spawn, sound), link(key, open)],
+    },
+  }
+}
+
+export const TEMPLATES = [
+  {
+    id: 'welcome',
+    name: 'Mod de bienvenue',
+    description: 'Message et objet à la connexion, une pierre qui invoque un compagnon, un menu ouvert avec la touche G.',
+    create: newProject,
+  },
+  { id: 'empty', name: 'Projet vide', description: 'Partir de zéro.', create: emptyProject },
+]

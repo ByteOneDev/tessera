@@ -75,6 +75,38 @@ export interface LogicEdge {
   targetHandle: string
 }
 
+export type ContentKind = 'item' | 'block' | 'entity'
+
+interface ContentBase {
+  id: string
+  name: string
+  /** Texture 16×16 en data URL (PNG). Pour une créature, générée depuis les couleurs du modèle si absente. */
+  texture?: string
+}
+
+export interface ItemContent extends ContentBase {
+  kind: 'item'
+  maxStack: number
+}
+
+export interface BlockContent extends ContentBase {
+  kind: 'block'
+  /** Temps de minage (pierre = 1.5, terre = 0.5). */
+  hardness: number
+}
+
+export interface EntityContent extends ContentBase {
+  kind: 'entity'
+  modelId: string
+  health: number
+  /** Vitesse de déplacement (cochon = 0.25). */
+  speed: number
+  eggPrimary: string
+  eggSecondary: string
+}
+
+export type Content = ItemContent | BlockContent | EntityContent
+
 export interface ModMeta {
   modId: string
   name: string
@@ -85,10 +117,11 @@ export interface ModMeta {
 
 export interface Project {
   format: 'tessera'
-  formatVersion: 1
+  formatVersion: 2
   meta: ModMeta
   models: Model[]
   guis: Gui[]
+  content: Content[]
   logic: { nodes: LogicNode[]; edges: LogicEdge[] }
   /** Code Java libre ajouté au mod (classe CustomCode). */
   customCode: string

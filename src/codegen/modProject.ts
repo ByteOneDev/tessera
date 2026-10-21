@@ -1,13 +1,12 @@
 // Assemble tous les fichiers d'un projet de mod NeoForge 1.21.1 (ModDevGradle).
 import type { Project } from '../project/types'
+import { generateContent } from './content'
 import { generateLogic, type Diagnostic } from './logic'
 import { MOD_ID_RE, mainClassName, packageName, screenClassNames } from './names'
 import { generateModClient, generateScreen } from './screens'
+import { FOOJAY_VERSION, JAVA_VERSION, MINECRAFT_VERSION, MODDEVGRADLE_VERSION, NEOFORGE_VERSION } from './versions'
 
-export const MINECRAFT_VERSION = '1.21.1'
-// Versions à jour : https://projects.neoforged.net/neoforged/neoforge et .../neoforged/moddevgradle
-export const NEOFORGE_VERSION = '21.1.172'
-export const MODDEVGRADLE_VERSION = '2.0.95'
+export { MINECRAFT_VERSION }
 
 export interface ModFile {
   path: string
@@ -56,6 +55,8 @@ export function buildMod(project: Project): ModBuild {
 
   const logic = generateLogic(project)
   diagnostics.push(...logic.diagnostics)
+  const content = generateContent(project)
+  diagnostics.push(...content.diagnostics)
   const screens = screenClassNames(project.guis)
 
   const files: ModFile[] = []
@@ -76,7 +77,7 @@ public class ${main} {
     public static final String MODID = "${meta.modId}";
 
     public ${main}(IEventBus modEventBus, ModContainer modContainer) {
-    }
+${content.hasContent ? '        ModContent.register(modEventBus);\n' : ''}    }
 }
 `,
   )
@@ -93,12 +94,14 @@ public class ${main} {
     for (const a of assets) files.push({ path: `${res}/${a.path}`, content: '', dataUrl: a.dataUrl, generated: true })
   }
 
+  for (const f of content.files) files.push({ ...f, generated: true })
+
   add(`${java}/CustomCode.java`, project.customCode || CUSTOM_CODE_TEMPLATE(pkg), false)
 
   add(
     `${res}/META-INF/neoforge.mods.toml`,
     `modLoader = "javafml"
-loaderVersion = "[4,)"
+loaderVersion = "[1,)"
 license = "All Rights Reserved"
 
 [[mods]]
@@ -123,11 +126,12 @@ ordering = "NONE"
 side = "BOTH"
 `,
   )
-  add(`${res}/assets/${meta.modId}/lang/en_us.json`, JSON.stringify(logic.langEntries, null, 2) + '\n')
+  add(`${res}/assets/${meta.modId}/lang/en_us.json`, JSON.stringify({ ...content.lang, ...logic.langEntries }, null, 2) + '\n')
 
   add(
     'gradle.properties',
     `org.gradle.jvmargs=-Xmx2G
+org.gradle.configuration-cache=true
 org.gradle.daemon=true
 org.gradle.parallel=true
 org.gradle.caching=true
@@ -145,13 +149,12 @@ mod_group_id=${pkg}
     `pluginManagement {
     repositories {
         gradlePluginPortal()
-        maven { url = 'https://maven.neoforged.net/releases' }
     }
 }
 
 plugins {
     // Télécharge automatiquement le JDK 21 si besoin.
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.9.0'
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '${FOOJAY_VERSION}'
 }
 
 rootProject.name = '${meta.modId}'
@@ -171,7 +174,7 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(${JAVA_VERSION})
 
 neoForge {
     version = project.neo_version
@@ -206,12 +209,13 @@ Mod NeoForge ${MINECRAFT_VERSION} généré par Tessera.
 
 ## Compiler
 
-Il faut Java 21 et Gradle 8.10 ou plus récent.
+Il faut Java 21. Gradle est téléchargé automatiquement par le wrapper.
 
 \`\`\`bash
-gradle wrapper
 ./gradlew build
 \`\`\`
+
+Sous Windows : \`gradlew.bat build\`.
 
 Le mod se trouve ensuite dans \`build/libs/${meta.modId}-${meta.version}.jar\` : copiez-le dans le dossier \`mods/\` de Minecraft.
 

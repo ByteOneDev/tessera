@@ -1,6 +1,7 @@
 // Génération Java des nœuds de logique (sens unique : nœuds → Java).
 import { NODE_DEF_BY_TYPE, type Side } from '../nodes/nodeDefs'
 import type { LogicNode, Project } from '../project/types'
+import { resolveContentRef } from './content'
 import { indent, javaString, mainClassName, packageName, resourceId, screenClassNames } from './names'
 
 export interface Diagnostic {
@@ -71,7 +72,13 @@ export function generateLogic(project: Project): LogicOutput {
   const warn = (node: LogicNode, message: string) => diagnostics.push({ nodeId: node.id, level: 'warning', message })
 
   const rl = (node: LogicNode, key: string) => {
-    const { id, valid } = resourceId(node.params[key] ?? '')
+    const raw = node.params[key] ?? ''
+    const resolved = resolveContentRef(project, raw)
+    if (resolved === null) {
+      err(node, 'Le contenu personnalisé choisi n’existe plus.')
+      return 'ResourceLocation.parse("minecraft:air")'
+    }
+    const { id, valid } = resourceId(resolved)
     if (!valid) err(node, `Identifiant invalide : « ${node.params[key] ?? ''} »`)
     return `ResourceLocation.parse(${javaString(id)})`
   }
@@ -157,6 +164,12 @@ export function generateLogic(project: Project): LogicOutput {
         }
         return [`ModClient.openScreen(${javaString(cls)});`]
       }
+      case 'action.spawn_entity':
+        return [
+          `if (player.level() instanceof ServerLevel level) {`,
+          `    BuiltInRegistries.ENTITY_TYPE.get(${rl(node, 'entity')}).spawn(level, player.blockPosition().relative(player.getDirection(), 2), MobSpawnType.EVENT);`,
+          '}',
+        ]
       case 'action.java':
         return (node.params.code ?? '').split('\n')
       default:
@@ -299,9 +312,11 @@ import ${pkg}.client.ModClient;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;

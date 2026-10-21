@@ -1,4 +1,5 @@
-// Catalogue des nœuds de logique. La génération Java correspondante est dans codegen/javaGen.ts.
+// Catalogue des nœuds de logique. La génération Java correspondante est dans codegen/logic.ts.
+import type { ContentKind } from '../project/types'
 
 export type Side = 'server' | 'client' | 'both'
 export type NodeCategory = 'event' | 'condition' | 'action'
@@ -9,6 +10,8 @@ export interface ParamDef {
   kind: 'text' | 'number' | 'id' | 'select' | 'code' | 'gui' | 'key'
   default: string
   placeholder?: string
+  /** Pour `id` : types de Contenu personnalisé proposés dans la liste (AD-4). */
+  content?: ContentKind[]
   options?: { value: string; label: string }[]
 }
 
@@ -55,7 +58,7 @@ export const NODE_DEFS: NodeDef[] = [
     label: 'Clic droit avec un objet',
     description: 'Quand un joueur fait clic droit en tenant un objet. Se déclenche côté serveur et côté client.',
     side: 'both',
-    params: [{ key: 'item', label: 'Objet (vide = tous)', kind: 'id', default: '', placeholder: 'minecraft:stick' }],
+    params: [{ key: 'item', label: 'Objet (vide = tous)', kind: 'id', default: '', placeholder: 'minecraft:stick', content: ['item', 'block'] }],
     outputs: OUT,
   },
   {
@@ -64,7 +67,7 @@ export const NODE_DEFS: NodeDef[] = [
     label: 'Bloc cassé',
     description: 'Quand un joueur casse un bloc.',
     side: 'server',
-    params: [{ key: 'block', label: 'Bloc (vide = tous)', kind: 'id', default: '', placeholder: 'minecraft:stone' }],
+    params: [{ key: 'block', label: 'Bloc (vide = tous)', kind: 'id', default: '', placeholder: 'minecraft:stone', content: ['block'] }],
     outputs: OUT,
   },
   {
@@ -123,7 +126,7 @@ export const NODE_DEFS: NodeDef[] = [
     label: 'Si tient un objet',
     description: 'Le joueur tient-il cet objet en main principale ?',
     side: 'both',
-    params: [{ key: 'item', label: 'Objet', kind: 'id', default: 'minecraft:diamond' }],
+    params: [{ key: 'item', label: 'Objet', kind: 'id', default: 'minecraft:diamond', content: ['item', 'block'] }],
     outputs: BRANCHES,
   },
   {
@@ -162,7 +165,7 @@ export const NODE_DEFS: NodeDef[] = [
     description: "Ajoute un objet dans l'inventaire du joueur.",
     side: 'server',
     params: [
-      { key: 'item', label: 'Objet', kind: 'id', default: 'minecraft:diamond' },
+      { key: 'item', label: 'Objet', kind: 'id', default: 'minecraft:diamond', content: ['item', 'block'] },
       { key: 'count', label: 'Quantité', kind: 'number', default: '1' },
     ],
     outputs: OUT,
@@ -219,6 +222,15 @@ export const NODE_DEFS: NodeDef[] = [
       "Exécute une commande. Côté serveur, elle tourne avec les droits d'opérateur ; côté client, elle est envoyée comme si le joueur la tapait.",
     side: 'both',
     params: [{ key: 'command', label: 'Commande', kind: 'text', default: 'time set day' }],
+    outputs: OUT,
+  },
+  {
+    type: 'action.spawn_entity',
+    category: 'action',
+    label: 'Faire apparaître une créature',
+    description: 'Fait apparaître une créature à deux blocs devant le joueur.',
+    side: 'server',
+    params: [{ key: 'entity', label: 'Créature', kind: 'id', default: 'minecraft:pig', content: ['entity'] }],
     outputs: OUT,
   },
   {

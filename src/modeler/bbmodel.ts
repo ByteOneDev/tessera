@@ -1,5 +1,6 @@
 // Export Blockbench (.bbmodel, format « Modded Entity », UV en boîte).
 // Chaque cube devient un os (groupe) qui porte le pivot et la rotation : le modèle est prêt à animer dans Blockbench.
+import { Bitmap } from '../lib/png'
 import type { Cube, Model } from '../project/types'
 
 export interface UvSlot {
@@ -86,24 +87,18 @@ export function shade(hex: string, amount: number): string {
   return '#' + [16, 8, 0].map((s) => ch(s).toString(16).padStart(2, '0')).join('')
 }
 
-/** Peint une texture unie par cube (dessus plus clair, dessous plus sombre). Navigateur uniquement. */
+/** Peint une texture unie par cube (dessus plus clair, dessous plus sombre). Pur : utilisable dans le codegen. */
 export function paintTexture(model: Model, layout: UvLayout): string {
-  const canvas = document.createElement('canvas')
-  canvas.width = layout.width
-  canvas.height = layout.height
-  const ctx = canvas.getContext('2d')!
+  const bmp = new Bitmap(layout.width, layout.height)
   const colorOf = new Map(model.cubes.map((c) => [c.id, c.color]))
   for (const s of layout.slots) {
     const base = colorOf.get(s.cubeId) ?? '#ffffff'
     const { u, v, w, h, d } = s
-    ctx.fillStyle = base
-    ctx.fillRect(u, v + d, 2 * (w + d), h)
-    ctx.fillStyle = shade(base, 0.15)
-    ctx.fillRect(u + d, v, w, d)
-    ctx.fillStyle = shade(base, -0.2)
-    ctx.fillRect(u + d + w, v, w, d)
+    bmp.fillRect(u, v + d, 2 * (w + d), h, base)
+    bmp.fillRect(u + d, v, w, d, shade(base, 0.15))
+    bmp.fillRect(u + d + w, v, w, d, shade(base, -0.2))
   }
-  return canvas.toDataURL('image/png')
+  return bmp.toDataUrl()
 }
 
 const add = (a: number[], b: number[]) => a.map((x, i) => x + b[i]) as [number, number, number]
