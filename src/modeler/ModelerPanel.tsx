@@ -3,7 +3,8 @@ import { ColorInput, Field, Section, TextInput, Vec3Input, isTyping } from '../c
 import { newCube, newId, newModel } from '../project/defaults'
 import { useProject, useUi } from '../project/store'
 import type { Cube, Vec3 } from '../project/types'
-import { downloadText, pickFile } from '../lib/files'
+import { pickFile } from '../lib/files'
+import { platform } from '../platform'
 import { slug } from '../codegen/names'
 import { buildBbmodel, importBbmodel, layoutUv, paintTexture } from './bbmodel'
 import { Viewport, type TransformMode } from './Viewport'
@@ -66,7 +67,7 @@ export function ModelerPanel() {
     if (!model) return
     const layout = layoutUv(model.cubes)
     const bb = buildBbmodel(model, layout, paintTexture(model, layout))
-    downloadText(JSON.stringify(bb), `${slug(model.name, 'modele')}.bbmodel`, 'application/json')
+    platform.exportText(JSON.stringify(bb), `${slug(model.name, 'modele')}.bbmodel`, 'application/json').catch((e) => setError(String(e)))
   }
 
   const importBb = async () => {

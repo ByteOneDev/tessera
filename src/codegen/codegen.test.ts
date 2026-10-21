@@ -211,3 +211,14 @@ describe('FancyMenu', () => {
     expect(out.layout).toMatch(/\[action_type:sendmessage\] = \/spawn/)
   })
 })
+
+describe('déterminisme (AD-2)', () => {
+  it('produit deux fois les mêmes fichiers', () => {
+    const p = newProject()
+    const strip = (b: ReturnType<typeof buildMod>) => b.files.map((f) => [f.path, f.content, f.dataUrl])
+    expect(strip(buildMod(p))).toEqual(strip(buildMod(structuredClone(p))))
+    const gui = newGui('menu', 'fancymenu')
+    gui.elements = newGui('x', 'mod').elements
+    expect(exportFancyMenu(gui).layout).toEqual(exportFancyMenu(structuredClone(gui)).layout)
+  })
+})

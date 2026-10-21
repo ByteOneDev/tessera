@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import { temporal } from 'zundo'
 import { produce } from 'immer'
 import { newProject } from './defaults'
+import { migrate } from './migrate'
 import type { Project } from './types'
 
 interface ProjectState {
@@ -36,14 +37,26 @@ export const useProject = create<ProjectState>()(
         handleSet: groupBursts as never,
       },
     ),
-    { name: 'tessera.project', partialize: (s) => ({ project: s.project }) },
+    {
+      name: 'tessera.project',
+      version: 2,
+      partialize: (s) => ({ project: s.project }),
+      // Sauvegarde de secours d'une version précédente : même chemin de migration qu'à l'ouverture (AD-5).
+      migrate: (persisted) => {
+        try {
+          return { project: migrate((persisted as { project?: unknown })?.project) }
+        } catch {
+          return { project: newProject() }
+        }
+      },
+    },
   ),
 )
 
 export const undo = () => useProject.temporal.getState().undo()
 export const redo = () => useProject.temporal.getState().redo()
 
-export type Panel = 'modeler' | 'gui' | 'nodes' | 'code'
+export type Panel = 'modeler' | 'gui' | 'nodes' | 'content' | 'code'
 
 interface UiState {
   panel: Panel
@@ -52,6 +65,7 @@ interface UiState {
   guiId: string | null
   elementId: string | null
   codeFile: string | null
+  contentId: string | null
   set: (patch: Partial<Omit<UiState, 'set'>>) => void
 }
 
@@ -62,5 +76,6 @@ export const useUi = create<UiState>()((set) => ({
   guiId: null,
   elementId: null,
   codeFile: null,
+  contentId: null,
   set: (patch) => set(patch),
 }))

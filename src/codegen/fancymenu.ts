@@ -9,13 +9,22 @@ export interface FancyMenuExport {
   assets: { path: string; dataUrl: string }[]
 }
 
-const uuid = () => crypto.randomUUID()
+/** UUID stable dérivé d'une graine (AD-2 : deux exports du même projet sont identiques). */
+export function stableUuid(seed: string): string {
+  const h = (salt: number) => {
+    let x = 0x811c9dc5 ^ salt
+    for (let i = 0; i < seed.length; i++) x = Math.imul(x ^ seed.charCodeAt(i), 0x01000193)
+    return (x >>> 0).toString(16).padStart(8, '0')
+  }
+  const hex = h(1) + h(2) + h(3) + h(4)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
+}
 
-function baseElement(type: string, x: number, y: number, w: number, h: number): string[] {
-  const requirements = uuid()
+function baseElement(seed: string, type: string, x: number, y: number, w: number, h: number): string[] {
+  const requirements = stableUuid(seed + ':req')
   return [
     `element_type = ${type}`,
-    `instance_identifier = ${uuid()}`,
+    `instance_identifier = ${stableUuid(seed + ':el')}`,
     'appearance_delay = no_delay',
     'appearance_delay_seconds = 1.0',
     'fade_in = false',
@@ -35,7 +44,7 @@ function baseElement(type: string, x: number, y: number, w: number, h: number): 
 
 function actionLines(action: ButtonAction, blockId: string): string[] {
   const entry = (type: string, value: string) => {
-    const id = uuid()
+    const id = stableUuid(blockId + ':action')
     return [`[executable_action_instance:${id}][action_type:${type}] = ${value}`, `[executable_block:${blockId}][type:generic] = [executables:${id};]`]
   }
   switch (action.kind) {
@@ -61,13 +70,13 @@ export function exportFancyMenu(gui: Gui): FancyMenuExport {
 
   for (const el of gui.elements) {
     if (el.type === 'button') {
-      const blockId = uuid()
+      const blockId = stableUuid(el.id + ':block')
       blocks.push([
         `button_element_executable_block_identifier = ${blockId}`,
         ...actionLines(el.action, blockId),
         `label = ${el.text}`,
         'navigatable = true',
-        ...baseElement('custom_button', el.x, el.y, el.w, el.h),
+        ...baseElement(el.id, 'custom_button', el.x, el.y, el.w, el.h),
       ])
     } else if (el.type === 'label') {
       blocks.push([
@@ -78,14 +87,14 @@ export function exportFancyMenu(gui: Gui): FancyMenuExport {
         `base_color = ${el.color}`,
         'text_border = 0',
         'line_spacing = 1',
-        ...baseElement('text_v2', el.x, el.y, el.w, el.h),
+        ...baseElement(el.id, 'text_v2', el.x, el.y, el.w, el.h),
       ])
     } else if (el.type === 'panel') {
-      blocks.push(['shape = rectangle', `color = ${el.color}`, ...baseElement('shape', el.x, el.y, el.w, el.h)])
+      blocks.push(['shape = rectangle', `color = ${el.color}`, ...baseElement(el.id, 'shape', el.x, el.y, el.w, el.h)])
     } else if (el.type === 'image' && el.image) {
       const file = `${name}_${slug(el.name, el.id.toLowerCase())}.png`
       assets.push({ path: `config/fancymenu/assets/${file}`, dataUrl: el.image })
-      blocks.push([`source = [source:local]/config/fancymenu/assets/${file}`, ...baseElement('image', el.x, el.y, el.w, el.h)])
+      blocks.push([`source = [source:local]/config/fancymenu/assets/${file}`, ...baseElement(el.id, 'image', el.x, el.y, el.w, el.h)])
     }
   }
 
@@ -95,7 +104,7 @@ export function exportFancyMenu(gui: Gui): FancyMenuExport {
     'layout-meta {',
     `  identifier = ${gui.fancyMenuScreen || 'title_screen'}`,
     '  render_custom_elements_behind_vanilla = false',
-    `  last_edited_time = ${Date.now()}`,
+    '  last_edited_time = 0',
     '  is_enabled = true',
     '  randommode = false',
     '  randomgroup = 1',

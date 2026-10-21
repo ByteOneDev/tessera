@@ -3,7 +3,8 @@ import { ColorInput, Field, NumberInput, Section, TextInput, isTyping } from '..
 import { newGui, newGuiElement } from '../project/defaults'
 import { useProject, useUi } from '../project/store'
 import type { ButtonAction, Gui, GuiElement, GuiElementType } from '../project/types'
-import { downloadZip, pickFile, readAsDataUrl } from '../lib/files'
+import { pickFile, readAsDataUrl } from '../lib/files'
+import { platform } from '../platform'
 import { exportFancyMenu } from '../codegen/fancymenu'
 import { slug } from '../codegen/names'
 
@@ -189,7 +190,7 @@ export function GuiPanel() {
   const exportFancy = async () => {
     if (!gui) return
     const out = exportFancyMenu(gui)
-    await downloadZip(
+    await platform.exportZip(
       [{ path: out.layoutPath, content: out.layout }, ...out.assets.map((a) => ({ path: a.path, content: '', dataUrl: a.dataUrl }))],
       `${slug(gui.name, 'layout')}_fancymenu.zip`,
     )

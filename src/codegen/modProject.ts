@@ -15,6 +15,7 @@ export interface ModFile {
   dataUrl?: string
   /** Fichier généré par Tessera (lecture seule dans le panneau Code). */
   generated: boolean
+  executable?: boolean
 }
 
 export interface ModBuild {

@@ -17,15 +17,22 @@ export interface ZipEntry {
   path: string
   content: string
   dataUrl?: string
+  executable?: boolean
+}
+
+export async function buildZip(entries: ZipEntry[]): Promise<Uint8Array> {
+  const zip = new JSZip()
+  for (const e of entries) {
+    const unixPermissions = e.executable ? 0o755 : 0o644
+    if (e.dataUrl) zip.file(e.path, e.dataUrl.split(',')[1] ?? '', { base64: true, unixPermissions })
+    else zip.file(e.path, e.content, { unixPermissions })
+  }
+  return zip.generateAsync({ type: 'uint8array', platform: 'UNIX' })
 }
 
 export async function downloadZip(entries: ZipEntry[], filename: string) {
-  const zip = new JSZip()
-  for (const e of entries) {
-    if (e.dataUrl) zip.file(e.path, e.dataUrl.split(',')[1] ?? '', { base64: true })
-    else zip.file(e.path, e.content)
-  }
-  downloadBlob(await zip.generateAsync({ type: 'blob' }), filename)
+  const bytes = await buildZip(entries)
+  downloadBlob(new Blob([bytes as BlobPart], { type: 'application/zip' }), filename)
 }
 
 export function pickFile(accept: string): Promise<File | null> {

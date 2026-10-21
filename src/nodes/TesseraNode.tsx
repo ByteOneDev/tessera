@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { createContext, useContext } from 'react'
 import type { Diagnostic } from '../codegen/logic'
+import { CONTENT_REF } from '../codegen/content'
 import { useProject } from '../project/store'
 import { NODE_DEF_BY_TYPE, type ParamDef } from './nodeDefs'
 
@@ -11,6 +12,7 @@ const KEYS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split(''), ...Array.from
 function ParamInput({ nodeId, def, value }: { nodeId: string; def: ParamDef; value: string }) {
   const update = useProject((s) => s.update)
   const guis = useProject((s) => s.project.guis)
+  const content = useProject((s) => s.project.content)
   const set = (v: string) =>
     update((p) => {
       const n = p.logic.nodes.find((x) => x.id === nodeId)
@@ -40,6 +42,33 @@ function ParamInput({ nodeId, def, value }: { nodeId: string; def: ParamDef; val
           ))}
         </select>
       )
+    case 'id': {
+      const choices = def.content ? content.filter((c) => def.content!.includes(c.kind)) : []
+      const isRef = value.startsWith(CONTENT_REF)
+      if (!choices.length && !isRef) break
+      return (
+        <>
+          <select
+            className="nodrag"
+            value={isRef ? value : '__free'}
+            onChange={(e) => set(e.target.value === '__free' ? '' : e.target.value)}
+          >
+            <optgroup label="Contenu du mod">
+              {choices.map((c) => (
+                <option key={c.id} value={CONTENT_REF + c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+            {isRef && !choices.some((c) => CONTENT_REF + c.id === value) && <option value={value}>⚠ contenu supprimé</option>}
+            <option value="__free">Identifiant Minecraft…</option>
+          </select>
+          {!isRef && (
+            <input className="nodrag" placeholder={def.placeholder ?? 'minecraft:…'} value={value} spellCheck={false} onChange={(e) => set(e.target.value)} />
+          )}
+        </>
+      )
+    }
     case 'select':
       return (
         <select className="nodrag" value={value} onChange={(e) => set(e.target.value)}>
@@ -50,18 +79,17 @@ function ParamInput({ nodeId, def, value }: { nodeId: string; def: ParamDef; val
           ))}
         </select>
       )
-    default:
-      return (
-        <input
-          className="nodrag"
-          inputMode={def.kind === 'number' ? 'decimal' : undefined}
-          placeholder={def.placeholder}
-          value={value}
-          spellCheck={false}
-          onChange={(e) => set(e.target.value)}
-        />
-      )
   }
+  return (
+    <input
+      className="nodrag"
+      inputMode={def.kind === 'number' ? 'decimal' : undefined}
+      placeholder={def.placeholder}
+      value={value}
+      spellCheck={false}
+      onChange={(e) => set(e.target.value)}
+    />
+  )
 }
 
 export function TesseraNode({ id, selected }: NodeProps) {
