@@ -35,7 +35,11 @@ pub fn build(
     files: &[OutFile],
     log: &dyn Fn(String),
 ) -> Result<BuildOutcome, String> {
-    if mod_id.is_empty() || !mod_id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+    if mod_id.is_empty()
+        || !mod_id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    {
         return Err(format!("Mod id invalide : « {mod_id} »"));
     }
     let dir = builds_root.join(mod_id);
@@ -45,7 +49,11 @@ pub fn build(
     log(format!("[Tessera] Projet écrit dans {}", dir.display()));
 
     let java_home = ensure_jdk(jdk_root, log)?;
-    let wrapper = dir.join(if cfg!(windows) { "gradlew.bat" } else { "gradlew" });
+    let wrapper = dir.join(if cfg!(windows) {
+        "gradlew.bat"
+    } else {
+        "gradlew"
+    });
     if !wrapper.exists() {
         return Err("Wrapper Gradle absent des fichiers du projet.".into());
     }
@@ -82,11 +90,16 @@ pub fn build(
     let _ = err_thread.join();
     let status = child.wait().map_err(|e| e.to_string())?;
 
-    let jar = fs::read_dir(dir.join("build").join("libs")).ok().and_then(|entries| {
-        entries
-            .flatten()
-            .map(|e| e.path())
-            .find(|p| p.extension().is_some_and(|x| x == "jar") && !p.to_string_lossy().contains("-sources"))
-    });
-    Ok(BuildOutcome { ok: status.success() && jar.is_some(), jar })
+    let jar = fs::read_dir(dir.join("build").join("libs"))
+        .ok()
+        .and_then(|entries| {
+            entries.flatten().map(|e| e.path()).find(|p| {
+                p.extension().is_some_and(|x| x == "jar")
+                    && !p.to_string_lossy().contains("-sources")
+            })
+        });
+    Ok(BuildOutcome {
+        ok: status.success() && jar.is_some(),
+        jar,
+    })
 }

@@ -89,7 +89,8 @@ Les dépendances vont dans le sens des flèches. `codegen` n'importe jamais Reac
 - **Rule:**
   - Le front appelle `invoke('build_mod', { modId, files })`.
   - Rust écrit les fichiers dans `app_data_dir/builds/<modid>/`, en supprimant les fichiers générés obsolètes mais en conservant `build/` et `.gradle/`.
-  - Rust ajoute le wrapper Gradle embarqué (ressource Tauri), s'assure d'avoir un JDK 21 (celui du système s'il est en version 21, sinon Temurin 21 téléchargé dans `app_data_dir/jdk/`) et lance `gradlew build --console=plain` avec `JAVA_HOME`.
+  - Le front ajoute aux fichiers le wrapper Gradle officiel servi depuis `public/gradle-wrapper/`, avec `gradlew` exécutable. Le même wrapper sert à l'export zip (FR-16).
+  - Rust s'assure d'avoir un JDK 21 (celui du système s'il est en version 21, sinon Temurin 21 téléchargé dans `app_data_dir/jdk/`) et lance `gradlew build --console=plain` avec `JAVA_HOME`.
   - Le journal est émis ligne par ligne sur l'événement `build://log`, et le résultat sur `build://done` (`{ ok, jarPath }`).
 
 ### AD-8 : Versions épinglées en un seul endroit
@@ -129,8 +130,8 @@ src/
   modeler/ gui/ nodes/ code/ content/   panneaux (coquille)
   platform/   index, web, tauri (coquille)
 src-tauri/
-  src/        lib.rs (commandes), build.rs (Gradle/JDK), project.rs (fichiers)
-  resources/gradle-wrapper/   gradlew, gradlew.bat, gradle/wrapper/*
+  src/        lib.rs (commandes), gradle.rs (Build), jdk.rs (Java 21), files.rs (fichiers)
+public/gradle-wrapper/   gradlew, gradlew.bat, gradle/wrapper/* (wrapper officiel)
 ```
 
 ```mermaid

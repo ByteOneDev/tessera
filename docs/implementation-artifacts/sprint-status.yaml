@@ -1,0 +1,29 @@
+# Suivi de sprint Tessera v1 (BMAD). Mis à jour : 2026-10-21
+project: tessera
+epics:
+  epic-1-bureau-et-projets:
+    status: done
+    stories:
+      s1-1-coquille-tauri: done          # npm run desktop, fenêtre native vérifiée
+      s1-2-adaptateur-plateforme: done
+      s1-3-format-disque-migrations: done
+      s1-4-accueil-modeles-projet: done
+  epic-2-contenu-personnalise:
+    status: done
+    stories:
+      s2-1-modele-de-donnees: done
+      s2-2-editeur-texture: done
+      s2-3-objets-blocs: done
+      s2-4-creatures: done
+      s2-5-noeuds-lies-au-contenu: done
+  epic-3-build:
+    status: review                        # chaîne écrite, jamais exécutée (choix utilisateur : pas de compilation)
+    stories:
+      s3-1-versions-wrapper: done
+      s3-2-commande-build-rust: review
+      s3-3-interface-build: review
+  epic-4-fiabilite:
+    status: in-progress
+    stories:
+      s4-1-fancymenu-deterministe: done
+      s4-2-validation-en-jeu: todo        # à faire par l'utilisateur

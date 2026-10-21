@@ -2,7 +2,8 @@
 import type { ModFile } from '../codegen/modProject'
 import { bytesToBase64 } from '../lib/png'
 
-const FILES = ['gradlew', 'gradlew.bat', 'gradle/wrapper/gradle-wrapper.properties', 'gradle/wrapper/gradle-wrapper.jar']
+// gradle-wrapper.properties est généré par buildMod depuis versions.ts (AD-8).
+const FILES = ['gradlew', 'gradlew.bat', 'gradle/wrapper/gradle-wrapper.jar']
 
 let cache: ModFile[] | null = null
 

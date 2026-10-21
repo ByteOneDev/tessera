@@ -30,7 +30,11 @@ pub struct InFile {
 /// Joint un chemin relatif à la racine, en refusant `..`, les chemins absolus et les préfixes de lecteur.
 pub fn safe_join(root: &Path, rel: &str) -> Result<PathBuf, String> {
     let rel_path = Path::new(rel);
-    if rel.is_empty() || rel_path.components().any(|c| !matches!(c, Component::Normal(_))) {
+    if rel.is_empty()
+        || rel_path
+            .components()
+            .any(|c| !matches!(c, Component::Normal(_)))
+    {
         return Err(format!("Chemin refusé : « {rel} »"));
     }
     Ok(root.join(rel_path))
@@ -40,18 +44,23 @@ pub fn write_files(root: &Path, files: &[OutFile]) -> Result<(), String> {
     for f in files {
         let target = safe_join(root, &f.path)?;
         if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent).map_err(|e| format!("Impossible de créer {} : {e}", parent.display()))?;
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Impossible de créer {} : {e}", parent.display()))?;
         }
         let bytes = match (&f.content, &f.base64) {
-            (_, Some(b)) => B64.decode(b).map_err(|e| format!("Base64 invalide pour {} : {e}", f.path))?,
+            (_, Some(b)) => B64
+                .decode(b)
+                .map_err(|e| format!("Base64 invalide pour {} : {e}", f.path))?,
             (Some(c), None) => c.clone().into_bytes(),
             (None, None) => Vec::new(),
         };
-        fs::write(&target, bytes).map_err(|e| format!("Impossible d'écrire {} : {e}", target.display()))?;
+        fs::write(&target, bytes)
+            .map_err(|e| format!("Impossible d'écrire {} : {e}", target.display()))?;
         #[cfg(unix)]
         if f.executable {
             use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&target, fs::Permissions::from_mode(0o755)).map_err(|e| e.to_string())?;
+            fs::set_permissions(&target, fs::Permissions::from_mode(0o755))
+                .map_err(|e| e.to_string())?;
         }
     }
     Ok(())
@@ -87,7 +96,10 @@ pub fn read_dir_base64(root: &Path, sub: &str) -> Result<Vec<InFile>, String> {
         .into_iter()
         .map(|p| {
             let bytes = fs::read(root.join(&p)).map_err(|e| e.to_string())?;
-            Ok(InFile { path: rel_string(&p), base64: B64.encode(bytes) })
+            Ok(InFile {
+                path: rel_string(&p),
+                base64: B64.encode(bytes),
+            })
         })
         .collect()
 }
@@ -103,6 +115,9 @@ mod tests {
         assert!(safe_join(root, "/etc/passwd").is_err());
         assert!(safe_join(root, "a/../../b").is_err());
         assert!(safe_join(root, "").is_err());
-        assert_eq!(safe_join(root, "assets/a.png").unwrap(), root.join("assets/a.png"));
+        assert_eq!(
+            safe_join(root, "assets/a.png").unwrap(),
+            root.join("assets/a.png")
+        );
     }
 }

@@ -63,14 +63,24 @@ struct BuildResult {
 
 /// Compile le mod dans `app_data_dir/builds/<modid>` et diffuse le journal sur `build://log`.
 #[tauri::command]
-async fn build_mod(app: AppHandle, mod_id: String, files: Vec<OutFile>) -> Result<BuildResult, String> {
+async fn build_mod(
+    app: AppHandle,
+    mod_id: String,
+    files: Vec<OutFile>,
+) -> Result<BuildResult, String> {
     let data = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let handle = app.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
         let log = |line: String| {
             let _ = handle.emit("build://log", line);
         };
-        gradle::build(&data.join("builds"), &data.join("jdk"), &mod_id, &files, &log)
+        gradle::build(
+            &data.join("builds"),
+            &data.join("jdk"),
+            &mod_id,
+            &files,
+            &log,
+        )
     })
     .await
     .map_err(|e| e.to_string())?;
@@ -80,7 +90,11 @@ async fn build_mod(app: AppHandle, mod_id: String, files: Vec<OutFile>) -> Resul
             jar_path: o.jar.map(|p| p.to_string_lossy().into_owned()),
             error: None,
         },
-        Err(e) => BuildResult { ok: false, jar_path: None, error: Some(e) },
+        Err(e) => BuildResult {
+            ok: false,
+            jar_path: None,
+            error: Some(e),
+        },
     };
     let _ = app.emit("build://done", out.clone());
     Ok(out)
@@ -93,8 +107,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
-                app.handle()
-                    .plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())?;
+                app.handle().plugin(
+                    tauri_plugin_log::Builder::default()
+                        .level(log::LevelFilter::Info)
+                        .build(),
+                )?;
             }
             Ok(())
         })

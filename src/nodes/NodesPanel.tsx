@@ -188,7 +188,6 @@ function Flow() {
             fitView
             fitViewOptions={{ maxZoom: 1.1 }}
             minZoom={0.2}
-            proOptions={{ hideAttribution: true }}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1.2} color="#3a404c" />
             <Controls showInteractive={false} />

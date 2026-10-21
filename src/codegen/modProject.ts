@@ -4,7 +4,7 @@ import { generateContent } from './content'
 import { generateLogic, type Diagnostic } from './logic'
 import { MOD_ID_RE, mainClassName, packageName, screenClassNames } from './names'
 import { generateModClient, generateScreen } from './screens'
-import { FOOJAY_VERSION, JAVA_VERSION, MINECRAFT_VERSION, MODDEVGRADLE_VERSION, NEOFORGE_VERSION } from './versions'
+import { FOOJAY_VERSION, GRADLE_VERSION, JAVA_VERSION, MINECRAFT_VERSION, MODDEVGRADLE_VERSION, NEOFORGE_VERSION } from './versions'
 
 export { MINECRAFT_VERSION }
 
@@ -143,6 +143,17 @@ neo_version=${NEOFORGE_VERSION}
 mod_id=${meta.modId}
 mod_version=${meta.version}
 mod_group_id=${pkg}
+`,
+  )
+  add(
+    'gradle/wrapper/gradle-wrapper.properties',
+    `distributionBase=GRADLE_USER_HOME
+distributionPath=wrapper/dists
+distributionUrl=https\\://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
+networkTimeout=10000
+validateDistributionUrl=true
+zipStoreBase=GRADLE_USER_HOME
+zipStorePath=wrapper/dists
 `,
   )
   add(
